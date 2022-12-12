@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[2]:
+# In[110]:
 
 
 from sentence_transformers import SentenceTransformer, util
@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 
 # ### Define Tokenizer Function
 
-# In[3]:
+# In[111]:
 
 
 def tokenizer_text(sentence):
@@ -39,50 +39,49 @@ def tokenizer_text(sentence):
 
 # ### Preprocess
 
-# In[33]:
+# In[129]:
 
 
-#df = pd.read_excel('dataset314.xlsx')
-df = pd.read_excel('C:\\Users\\jira\\เดสก์ท็อป\\dataset.xlsx', engine = 'openpyxl')
-df_text = pd.read_excel('C:\\Users\\jira\\เดสก์ท็อป\\dataset.xlsx', engine = 'openpyxl', sheet_name='all')
+df = pd.read_excel('C:\\Users\\jira\\เดสก์ท็อป\\dataset314.xlsx', engine = 'openpyxl')
 
 
-# In[6]:
+# In[130]:
 
 
-df.dtypes
+df
 
 
-# In[7]:
+# In[114]:
 
 
-df['TSIC CODE'] = df['TSIC CODE'].astype('object')
+df = df.fillna('-')
+
+
+# In[115]:
+
+
+df.info()
+
+
+# In[116]:
+
+
+#df['TSIC CODE'] = df['TSIC CODE'].astype('object')
 df['ประกอบธุรกิจ'] = df['ประกอบธุรกิจ'].astype('string')
 df['product_type'] = df['product_type'].astype('string')
+df['กลุ่มผลิตภัณฑ์'] = df['กลุ่มผลิตภัณฑ์'].astype('string')
+df['bussiness_type'] = df['bussiness_type'] .astype('string')
 
 
-# In[8]:
+# In[117]:
 
 
-df = df.fillna('Unknown Unknown')
-df
+df['details'] = df['ประกอบธุรกิจ'] +''+ df['product_type']+ df['กลุ่มผลิตภัณฑ์']+ df['bussiness_type']
+df['All'] = df['details'].apply(tokenizer_text)
+df['target'] = df['TSIC_Group'].astype('category').cat.codes
 
 
-# In[368]:
-
-
-df['x_roberta'] = df['ประกอบธุรกิจ'] +''+ df['product_type']
-df['x_tfidf'] = df['x_roberta'].apply(tokenizer_text)
-df['target'] = df['TSIC CODE'].astype('category').cat.codes
-
-
-# In[369]:
-
-
-df
-
-
-# In[370]:
+# In[118]:
 
 
 y = df['target'].values
@@ -90,14 +89,14 @@ y = df['target'].values
 
 # ### Embedding with TFIDF
 
-# In[371]:
+# In[119]:
 
 
 vectorizer = TfidfVectorizer()
-X_tfidf = vectorizer.fit_transform(df['x_tfidf'].values)
+X_tfidf = vectorizer.fit_transform(df['All'].values)
 
 
-# In[372]:
+# In[120]:
 
 
 X_tfidf.toarray()
@@ -105,37 +104,37 @@ X_tfidf.toarray()
 
 # #### umap & plot 
 
-# In[373]:
+# In[121]:
 
 
 mapper = umap.UMAP().fit(X_tfidf)
-umap.plot.points(mapper, labels=y)
+#umap.plot.points(mapper, labels=y)
+hover_df = pd.DataFrame(df, columns=['TSIC_Group'])
+f = umap.plot.points(mapper, labels=hover_df['TSIC_Group'])
 
 
-# #### Plot interactive
-
-# In[374]:
+# In[122]:
 
 
-p = umap.plot.interactive(mapper, labels=y, hover_data=df, point_size=10)
+p = umap.plot.interactive(mapper, labels=y[:30000],hover_data = df, point_size=5)
 umap.plot.show(p)
 
 
 # ### Embedding with xlm-roberta-base 
 
-# In[375]:
+# In[123]:
 
 
 model = SentenceTransformer('xlm-roberta-base')
 
 
-# In[376]:
+# In[124]:
 
 
-X_roberta = model.encode(df['x_roberta'].values)
+X_roberta = model.encode(df['details'].values)
 
 
-# In[377]:
+# In[125]:
 
 
 X_roberta
@@ -143,79 +142,30 @@ X_roberta
 
 # #### umap & plot 
 
-# In[378]:
+# In[126]:
 
 
 mapper = umap.UMAP().fit(X_roberta)
-umap.plot.points(mapper, labels=y)
+#umap.plot.points(mapper, labels=y)
+hover_df = pd.DataFrame(df, columns=['TSIC_Group'])
+f = umap.plot.points(mapper, labels=hover_df['TSIC_Group'])
 
 
 # #### Plot interactive
 
-# In[379]:
+# In[127]:
 
 
-p = umap.plot.interactive(mapper, labels=y, hover_data=df, point_size=10)
+p = umap.plot.interactive(mapper, labels=y[:30000],hover_data = df, point_size=5)
 umap.plot.show(p)
 
 
-# In[380]:
+# In[128]:
 
 
-df_label = df[['TSIC CODE', 'target']]
-df_label = df_label.rename(columns={'TSIC CODE': 'item', 'target': 'label' })
+df_label = df[['TSIC_Group', 'target']]
+df_label = df_label.rename(columns={'TSIC_Group': 'item', 'target': 'label' })
 df_label
-
-
-# In[43]:
-
-
-def cleanText(text):
-    text = str(text)
-    stop_word = list(thai_stopwords())
-    sentence = word_tokenize(text)
-    result = [word for word in sentence if word not in stop_word and " " not in word]
-    return text
-cleaning = []
-for txt in df_text["TEXT"]:
-    cleaning.append(cleanText(txt))
-cleaning[:10]
-
-
-# In[44]:
-
-
-df_cleaning = cleaning
-
-
-# In[31]:
-
-
-def cleanText(text):
-    text = str(text)
-    stop_word = list(thai_stopwords())
-    sentence = word_tokenize(text, engine="multi_cut")
-    # sentence = word_tokenize(text)
-    result = [word for word in sentence if word not in stop_word and " " not in word]
-    return ",".join(result)
-
-def tokenize(d):  
-    result = d.split(",")
-    result = list(filter(None, result))
-    return result
-
-new_text = []
-for txt in df_cleaning:
-    new_text.append(cleanText(txt))
-
-
-vectorizer = CountVectorizer(tokenizer=tokenize)
-transformed_data = vectorizer.fit_transform(new_text)
-count_data = zip(vectorizer.get_feature_names(), np.ravel(transformed_data.sum(axis=0)))
-keyword_df = pd.DataFrame(columns = ['word', 'count'])
-keyword_df['word'] = vectorizer.get_feature_names()
-keyword_df['count'] = np.ravel(transformed_data.sum(axis=0))   
-keyword_df.sort_values(by=['count'], ascending=False).head(10)
 
 
 # In[ ]:
